@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,11 +19,13 @@ import org.springframework.core.io.ClassPathResource;
 @Slf4j
 @Configuration
 public class FirebaseConfig {
+    @Value("${firebase.config.path}")
+    private String firebaseConfigPath;
+
     @PostConstruct
     public void init() throws IOException {
         log.info("Initializing firebase");
-        File file = new ClassPathResource("firebase.json").getFile();
-        FileInputStream serviceAccount = new FileInputStream(file);
+        FileInputStream serviceAccount = new FileInputStream(firebaseConfigPath);
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
