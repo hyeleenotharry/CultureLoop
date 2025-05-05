@@ -35,5 +35,10 @@ public class FirebaseConfig {
         log.info("Firebase initialized" + app.getName());
     }
 
+    @Bean
+    public FirebaseAuth firebaseAuth() {
+        return FirebaseAuth.getInstance();
+    }
+
 }
 
