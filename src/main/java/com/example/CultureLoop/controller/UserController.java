@@ -1,6 +1,7 @@
 package com.example.CultureLoop.controller;
 
 import com.example.CultureLoop.DTO.PreferenceUpdateRequest;
+import com.example.CultureLoop.service.CommunityService;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
+
+    private final CommunityService communityService;
 
     // JWT 기반 사용자 정보
     private String getEmailFromAuthentication() {
@@ -41,6 +44,7 @@ public class UserController {
         }
     }
 
+    // 사용자 선호도 설정
     @PostMapping("/me/preference")
     public ResponseEntity<?> updateUserPreference(@RequestBody PreferenceUpdateRequest request) {
         try {
@@ -53,6 +57,22 @@ public class UserController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating preference");
+        }
+    }
+
+    // 사용자 개수 설정
+    @PostMapping("/me/preference")
+    public ResponseEntity<?> updateUserCount(@RequestBody int count) {
+        try {
+            String email = getEmailFromAuthentication();
+
+            Firestore db = FirestoreClient.getFirestore();
+            db.collection("users").document(email).update("count", count);
+
+            return ResponseEntity.ok("count updated");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 }

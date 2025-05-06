@@ -29,6 +29,7 @@ public class FirebaseConfig {
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setStorageBucket("culture_loop")
                 .build();
 
         FirebaseApp app = FirebaseApp.initializeApp(options);
