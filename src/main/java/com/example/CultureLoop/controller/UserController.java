@@ -61,7 +61,7 @@ public class UserController {
     }
 
     // 사용자 개수 설정
-    @PostMapping("/me/preference")
+    @PostMapping("/me/count")
     public ResponseEntity<?> updateUserCount(@RequestBody int count) {
         try {
             String email = getEmailFromAuthentication();

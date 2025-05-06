@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -25,7 +26,7 @@ public class FirebaseConfig {
     @PostConstruct
     public void init() throws IOException {
         log.info("Initializing firebase");
-        FileInputStream serviceAccount = new FileInputStream(firebaseConfigPath);
+        InputStream serviceAccount = getClass().getClassLoader().getResourceAsStream("firebase.json");
 
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
