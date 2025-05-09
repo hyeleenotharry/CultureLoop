@@ -50,27 +50,66 @@ public class AuthController {
             // Firestore에 사용자 정보 저장
             Firestore db = FirestoreClient.getFirestore();
             try{
+                // 로그인
                 DocumentSnapshot snapshot = db.collection("users").document(email).get().get();
+                if (snapshot.exists()) {
+                    // 서버 JWT 생성 및 반환
+                    String jwt = jwtTokenProvider.createToken(uid, email);
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("token", jwt);
+
+                    response.put("isMember", snapshot.get("isMember"));
+
+                    return ResponseEntity.ok(response);
+                } else {
+                    // 회원가입
+                    Map<String, Object> userData = new HashMap<>();
+                    userData.put("email", email);
+                    userData.put("name", name);
+                    userData.put("picture", picture);
+                    userData.put("isMember", 0);
+
+                    // uid 또는 email을 문서 ID로 선택 (여기선 email 사용)
+                    try {
+                        db.collection("users").document(email).set(userData).get();
+                    } catch (Exception e1) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                    }
+                    // 서버 JWT 생성 및 반환
+                    String jwt = jwtTokenProvider.createToken(uid, email);
+
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("token", jwt);
+                    response.put("isMember", userData.get("isMember"));
+
+                    return ResponseEntity.ok(response);
+                }
+
             } catch (Exception e) {
-                Map<String, Object> userData = new HashMap<>();
-                userData.put("email", email);
-                userData.put("name", name);
-                userData.put("picture", picture);
-
-                // uid 또는 email을 문서 ID로 선택 (여기선 email 사용)
-                db.collection("users").document(email).set(userData);
-            }
-//            Map<String, Object> userData = new HashMap<>();
-//            userData.put("email", email);
-//            userData.put("name", name);
-//            userData.put("picture", picture);
+//                // 회원가입
+//                Map<String, Object> userData = new HashMap<>();
+//                userData.put("email", email);
+//                userData.put("name", name);
+//                userData.put("picture", picture);
+//                userData.put("isMember", 0);
 //
-//            // uid 또는 email을 문서 ID로 선택 (여기선 email 사용)
-//            db.collection("users").document(email).set(userData);
+//                // uid 또는 email을 문서 ID로 선택 (여기선 email 사용)
+//                try {
+//                    db.collection("users").document(email).set(userData).get();
+//                } catch (Exception e1) {
+//                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//                }
+//                // 서버 JWT 생성 및 반환
+//                String jwt = jwtTokenProvider.createToken(uid, email);
+//
+//                Map<String, Object> response = new HashMap<>();
+//                response.put("token", jwt);
+//                response.put("isMember", userData.get("isMember"));
+//
+//                return ResponseEntity.ok(response);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
 
-            // 서버 JWT 생성 및 반환
-            String jwt = jwtTokenProvider.createToken(uid, email);
-            return ResponseEntity.ok(Collections.singletonMap("token", jwt));
         } catch (FirebaseAuthException e) {
             System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Token");

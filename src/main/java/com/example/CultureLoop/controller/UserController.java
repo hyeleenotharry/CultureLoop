@@ -68,6 +68,7 @@ public class UserController {
 
             Firestore db = FirestoreClient.getFirestore();
             db.collection("users").document(email).update("count", count);
+            db.collection("users").document(email).update("isMember", 1);
 
             return ResponseEntity.ok("count updated");
 
