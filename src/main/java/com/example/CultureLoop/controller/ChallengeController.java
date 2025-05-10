@@ -1,5 +1,6 @@
 package com.example.CultureLoop.controller;
 
+import com.example.CultureLoop.service.AiChallengeService;
 import com.example.CultureLoop.service.CommunityService;
 import com.example.CultureLoop.service.UserChallengeService;
 import com.google.api.core.ApiFuture;
@@ -26,36 +27,22 @@ import java.util.*;
 public class ChallengeController {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private static final String GEMINI_URL = "http://localhost:8080/challenge"; // 임시 url
+
     private final UserChallengeService userChallengeService;
     private final CommunityService communityService;
+    private final AiChallengeService aiChallengeService;
 
-    public ChallengeController(UserChallengeService userChallengeService, CommunityService communityService) {
+    public ChallengeController(UserChallengeService userChallengeService, CommunityService communityService, AiChallengeService aiChallengeService) {
         this.userChallengeService = userChallengeService;
         this.communityService = communityService;
+        this.aiChallengeService = aiChallengeService;
     }
 
-    @PostMapping("/ai/generate")
+    // ai 챌린지 생성
+    @PostMapping("/ai-generate")
     public ResponseEntity<?> generateChallenge(@RequestBody Map<String, Object> payload) {
-
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(GEMINI_URL, HttpMethod.POST, request, Map.class);
-
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null || !responseBody.containsKey("challenges")) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Invalid response from Gemini API");
-            }
-
-            List<Map<String, Object>> challenges = (List<Map<String, Object>>) responseBody.get("challenges");
-
-            Firestore db = FirestoreClient.getFirestore();
-            for (Map<String, Object> challenge : challenges) {
-                db.collection("challenges").add(challenge);
-            }
+            ResponseEntity<?> responseBody = aiChallengeService.generateAiChallenge(payload);
 
             return ResponseEntity.ok(responseBody);
         } catch (Exception e){
@@ -66,6 +53,8 @@ public class ChallengeController {
     // 있는 챌린지
     @GetMapping("/random-challenge")
     public ResponseEntity<?> getAiChallengesByCity(@RequestParam String city) {
+        // request param 이 없을 때는 무작위로 8개 골라서 가져오기
+
         // 사용자 프로필에서 count 받아오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
@@ -74,7 +63,7 @@ public class ChallengeController {
             Firestore db = FirestoreClient.getFirestore();
 
             // 해당 도시 챌린지 전부 불러오기
-            ApiFuture<QuerySnapshot> future = db.collection("challenges").whereEqualTo("location", city).get();
+            ApiFuture<QuerySnapshot> future = db.collection("challenges").whereEqualTo("city", city).get();
             List<QueryDocumentSnapshot> documents = future.get().getDocuments();
             List<Map<String, Object>> challenges = new ArrayList<>();
 
@@ -139,8 +128,9 @@ public class ChallengeController {
             @RequestPart("images") MultipartFile[] images) throws IOException {
 
         try {
-            communityService.addChallenge(challenge, images);
-            return ResponseEntity.status(HttpStatus.CREATED).body("Challenge added");
+            ResponseEntity<?> responseData = communityService.addChallenge(challenge, images);
+
+            return responseData;
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

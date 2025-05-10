@@ -14,13 +14,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 
 @Service
 public class UserChallengeService {
     // 랜덤하게 challenge 주기
-
 
     // challenge 수락 및 완료
     public ResponseEntity<?> addUserChallenge(String challengeId, boolean isComplete, MultipartFile file) {
@@ -29,65 +28,31 @@ public class UserChallengeService {
             String email = auth.getName();
 
             Firestore db = FirestoreClient.getFirestore();
-            // challenge 객체 가져오기
-            DocumentReference challengeRef = db.collection("challenges").document(challengeId);
-            System.out.println(challengeId);
-            DocumentSnapshot challengeSnapshot = challengeRef.get().get();
 
+            // challenge 문서 유효성 확인
+            DocumentSnapshot challengeSnapshot = db.collection("challenges").document(challengeId).get().get();
             if (!challengeSnapshot.exists()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Challenge not found");
             }
 
-            Map<String, Object> challengeData = challengeSnapshot.getData();
+            // 유저 문서 참조
+            DocumentReference userDocRef = db.collection("users").document(email);
+            String imageUrl = "";
 
-            // GCS에 PDF 업로드 (isCompleted == true일 때만)
-            String downloadUrl = null;
+            // 파일이 존재하고 완료 상태인 경우에만 GCS에 업로드
             if (isComplete && file != null && !file.isEmpty()) {
-                // 파일 이름 및 버킷 설정
-                String filename = "badges/" + challengeId + ".pdf";
-                String bucketName = StorageClient.getInstance().bucket().getName();
-
-                BlobId blobId = BlobId.of(bucketName, filename);
-                BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                        .setContentType("application/pdf")
-                        .build();
-
-                Storage storage = StorageOptions.getDefaultInstance().getService();
-
-                // 존재 여부 확인
-                Blob existingBlob = storage.get(blobId);
-                if (existingBlob == null) {
-                    // 존재하지 않으면 업로드
-                    storage.create(blobInfo, file.getBytes());
-
-                    // 다운로드 URL
-                    downloadUrl = "https://storage.googleapis.com/" + bucketName + "/" + filename;
-                } else {
-                    // 이미 존재하면 URL만
-                    downloadUrl = "https://storage.googleapis.com/" + bucketName + "/" + filename;
-                }
+                imageUrl = uploadImagesToGCS(file, challengeId);
             }
 
+            if (!isComplete) {
+                // ongoing에 추가
+                userDocRef.update("ongoing", FieldValue.arrayUnion(challengeId));
+            } else {
+                // ongoing에서 제거하고 completed에 추가
+                userDocRef.update("ongoing", FieldValue.arrayRemove(challengeId));
+                userDocRef.update("completed", FieldValue.arrayUnion(challengeId));
+                userDocRef.update("badges", FieldValue.arrayUnion(imageUrl));
 
-            // 문서 id : userId_challengeId
-            String docId = email + "_" + challengeId;
-            db.collection("users").document(email);
-            DocumentReference userChallengeRef = db.collection("users_challenges").document(docId);
-
-            // 사용자-챌린지 매핑 데이터 구성
-            Map<String, Object> userChallengeData = new HashMap<>();
-            userChallengeData.put("userId", email);
-            userChallengeData.put("challengeId", challengeId);
-            userChallengeData.put("status", isComplete ? "completed" : "ongoing");
-            userChallengeData.put("challenge", challengeData);
-
-            // 수락 누르면 firestore user - challenge(ongoing) 필드에 저장
-            userChallengeRef.set(userChallengeData);
-
-            // 완료했다면 user - challenge(completed) + 뱃지 획득
-            if (isComplete) {
-                DocumentReference userDoc = db.collection("users").document(email);
-                userDoc.update("badges", FieldValue.arrayUnion("badge_" + challengeId));
             }
 
             return ResponseEntity.ok("챌린지 " + (isComplete ? "완료" : "수락") + " 처리 완료");
@@ -97,7 +62,41 @@ public class UserChallengeService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Firestore 작업 실패: " + e.getMessage());
         }
+    }
 
+    private String uploadImagesToGCS(MultipartFile image, String challengeId) throws IOException {
+        String url = "";
+
+        try {
+            String bucketName = "culture_loop";
+
+            StorageClient client = StorageClient.getInstance();
+
+            var bucket = client.bucket();
+
+            if (bucket == null) {
+                throw new IllegalStateException("Firebase 기본 버킷이 설정되지 않았습니다.");
+            }
+
+            Storage storage = bucket.getStorage();
+
+            if (!image.isEmpty()) {
+                String filename = "badges/" + challengeId + "_" + image.getOriginalFilename();
+                BlobId blobId = BlobId.of(bucketName, filename);
+                BlobInfo blobInfo = BlobInfo.newBuilder(blobId).setContentType(image.getContentType()).build();
+                storage.create(blobInfo, image.getBytes());
+
+                String imageUrl = "https://storage.googleapis.com/" + bucketName + "/" + filename;
+                url = imageUrl;
+            }
+
+            return url;
+
+        } catch (Exception e) {
+
+            e.printStackTrace(); // 로그 꼭 보기!
+            throw new RuntimeException("이미지 업로드 실패", e);
+        }
     }
 
 }
