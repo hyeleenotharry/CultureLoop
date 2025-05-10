@@ -1,9 +1,7 @@
 package com.example.CultureLoop.service;
 
-import com.google.cloud.firestore.DocumentReference;
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.FieldValue;
-import com.google.cloud.firestore.Firestore;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.*;
 import com.google.cloud.storage.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.cloud.StorageClient;
@@ -16,6 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 @Service
 public class UserChallengeService {
@@ -61,6 +61,36 @@ public class UserChallengeService {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Firestore 작업 실패: " + e.getMessage());
+        }
+    }
+
+    public ResponseEntity<?> getRandomChallenges() {
+        int count = 8;
+
+        Firestore db = FirestoreClient.getFirestore();
+
+        try {
+            ApiFuture<QuerySnapshot> future = db.collection("challenges").get();
+
+            // 수정 가능한 리스트로 복사
+            List<QueryDocumentSnapshot> documents = new ArrayList<>(future.get().getDocuments());
+
+            if (documents.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+
+            Collections.shuffle(documents); // 안전하게 작동함
+
+            List<Map<String, Object>> randomChallenges = documents.stream()
+                    .limit(count)
+                    .map(DocumentSnapshot::getData)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(randomChallenges);
+
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Firestore 오류: " + e.getMessage());
         }
     }
 

@@ -50,6 +50,16 @@ public class ChallengeController {
         }
     }
 
+    // 아무거나 8개
+    @GetMapping("/init")
+    public ResponseEntity<?> getRandomChallenge() {
+        try {
+            return userChallengeService.getRandomChallenges();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
     // 있는 챌린지
     @GetMapping("/random-challenge")
     public ResponseEntity<?> getAiChallengesByCity(@RequestParam String city) {
