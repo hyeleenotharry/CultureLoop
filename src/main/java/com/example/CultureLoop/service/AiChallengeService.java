@@ -25,8 +25,10 @@ public class AiChallengeService {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName();
+            System.out.println(email);
 
             DocumentSnapshot snapshot = db.collection("users").document(email).get().get();
+            System.out.println(snapshot.getData());
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("city", request.get("city"));
@@ -49,11 +51,23 @@ public class AiChallengeService {
 
             for (Map<String, Object> challenge : challenges) {
                 Map<String, Object> challengeData = new HashMap<>();
+                ArrayList<String> images = new ArrayList<>();
+                images.add((String) challengeData.get("image_url"));
+
                 challenge.put("host", "ai");
+                Object imageUrlObj = challenge.remove("image_url"); // 삭제하며 추출
+
+                if (imageUrlObj instanceof List) {
+                    // image_url이 List인 경우
+                    challenge.put("images", imageUrlObj);
+                } else if (imageUrlObj instanceof String) {
+                    // image_url이 단일 String인 경우 -> List로 감싸기
+                    challenge.put("images", Collections.singletonList(imageUrlObj));
+                }
+
                 ApiFuture<DocumentReference> docRefFuture = db.collection("challenges").add(challenge);
                 // 같은 제목 있으면 저장 안 하는 로직 추가...
                 String challengeId = docRefFuture.get().getId();
-
                 challengeData.put("challengeId", challengeId);
                 challengeData.put("challenge", challenge);
 

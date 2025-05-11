@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import java.time.format.DateTimeFormatter;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -42,9 +43,9 @@ public class ChallengeController {
     @PostMapping("/ai-generate")
     public ResponseEntity<?> generateChallenge(@RequestBody Map<String, Object> payload) {
         try {
-            ResponseEntity<?> responseBody = aiChallengeService.generateAiChallenge(payload);
+            // ResponseEntity<?> responseBody = aiChallengeService.generateAiChallenge(payload);
 
-            return ResponseEntity.ok(responseBody);
+            return aiChallengeService.generateAiChallenge(payload);
         } catch (Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
@@ -103,8 +104,10 @@ public class ChallengeController {
             // preference 필드를 리스트로 가져오기
             List<String> preferences = (List<String>) snapshot.get("preference");
             LocalDate now = LocalDate.now();
-            String dateStr = now.toString();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yy/MM/dd");
+            String dateStr = now.format(formatter);
 
+            // 챌린지가 부족하다면
             if (shortage > 0) {
                 Map<String, Object> payload = new HashMap<>();
                 payload.put("city", city);
@@ -113,9 +116,12 @@ public class ChallengeController {
                 payload.put("count", shortage);
 
                 ResponseEntity<?> aiResponse = generateChallenge(payload);
-                Map<String, Object> body = (Map<String, Object>) aiResponse.getBody(); // body 추출
-                List<Map<String, Object>> newChallenges = (List<Map<String, Object>>) body.get("challenges"); // 그 후 get("challenges")
+                // System.out.println(aiResponse.getBody());
+                // 반환값 자체가 List<Map<String, Object>>이므로 바로 캐스팅
+                List<Map<String, Object>> newChallenges = (List<Map<String, Object>>) aiResponse.getBody();
+                // System.out.println(newChallenges);
 
+                // 이후 selectedChallenges에 추가
                 selectedChallenges.addAll(newChallenges);
 
                 // firestore 에 저장
