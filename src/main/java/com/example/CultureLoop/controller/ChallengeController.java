@@ -5,12 +5,8 @@ import com.example.CultureLoop.service.CommunityService;
 import com.example.CultureLoop.service.UserChallengeService;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.cloud.FirestoreClient;
-import com.google.firebase.cloud.StorageClient;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +20,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/challenge")
 public class ChallengeController {
 
@@ -32,12 +29,6 @@ public class ChallengeController {
     private final UserChallengeService userChallengeService;
     private final CommunityService communityService;
     private final AiChallengeService aiChallengeService;
-
-    public ChallengeController(UserChallengeService userChallengeService, CommunityService communityService, AiChallengeService aiChallengeService) {
-        this.userChallengeService = userChallengeService;
-        this.communityService = communityService;
-        this.aiChallengeService = aiChallengeService;
-    }
 
     // ai 챌린지 생성
     @PostMapping("/ai-generate")
@@ -116,10 +107,10 @@ public class ChallengeController {
                 payload.put("count", shortage);
 
                 ResponseEntity<?> aiResponse = generateChallenge(payload);
-                // System.out.println(aiResponse.getBody());
+
                 // 반환값 자체가 List<Map<String, Object>>이므로 바로 캐스팅
                 List<Map<String, Object>> newChallenges = (List<Map<String, Object>>) aiResponse.getBody();
-                // System.out.println(newChallenges);
+
 
                 // 이후 selectedChallenges에 추가
                 selectedChallenges.addAll(newChallenges);
@@ -136,6 +127,23 @@ public class ChallengeController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+
+    // /challenge?challengeId=abc123 또는 /challenge
+    @GetMapping("")
+    public ResponseEntity<?> getChallenge(@RequestParam(value = "challengeId", required = false) String challengeId) {
+        try {
+            if (challengeId == null || challengeId.isBlank()) {
+                // challengeId 없으면 랜덤 챌린지 8개 반환
+                return userChallengeService.getRandomChallenges();
+            } else {
+                // challengeId 있으면 해당 챌린지 디테일 반환
+                return userChallengeService.getChallengeDetail(challengeId);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
 
     // 호스트가 챌린지 등록
     @PostMapping(value = "/community", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

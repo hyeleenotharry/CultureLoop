@@ -94,6 +94,21 @@ public class UserChallengeService {
         }
     }
 
+    public ResponseEntity<?> getChallengeDetail(String ChallengeId) {
+        Firestore db = FirestoreClient.getFirestore();
+        try {
+            DocumentSnapshot snapshot = db.collection("challenges").document(ChallengeId).get().get();
+
+            return ResponseEntity.ok(snapshot.getData());
+        } catch (Exception e){
+            Map<String, Object> errorBody = new HashMap<>();
+            errorBody.put("error", "Internal Server Error");
+            errorBody.put("message", e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
+        }
+    }
+
     private String uploadImagesToGCS(MultipartFile image, String challengeId) throws IOException {
         String url = "";
 

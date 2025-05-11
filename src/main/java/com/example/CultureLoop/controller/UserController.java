@@ -2,6 +2,7 @@ package com.example.CultureLoop.controller;
 
 import com.example.CultureLoop.DTO.PreferenceUpdateRequest;
 import com.example.CultureLoop.service.CommunityService;
+import com.example.CultureLoop.service.UserProfileService;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final CommunityService communityService;
+    private final UserProfileService userProfileService;
 
     // JWT 기반 사용자 정보
     private String getEmailFromAuthentication() {
@@ -75,5 +77,23 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
+    }
+
+    // ongoing 불러오기
+    @GetMapping("/me/ongoing")
+    public ResponseEntity<?> getOngoingChallenge(){
+        return userProfileService.OngoingChallenge();
+    }
+
+    //completed 불러오기
+    @GetMapping("/me/completed")
+    public ResponseEntity<?> getCompletedChallenge(){
+        return userProfileService.CompletedChallenge();
+    }
+
+    // logs 불러오기
+    @GetMapping("/me/logs")
+    public ResponseEntity<?> getLogs(){
+        return userProfileService.ChallengeLog();
     }
 }

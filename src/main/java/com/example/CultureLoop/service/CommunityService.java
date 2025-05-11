@@ -30,7 +30,14 @@ public class CommunityService {
             Firestore db = FirestoreClient.getFirestore();
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName();
-            challenge.put("host", email);
+
+            String name = "";
+            try {
+                name = db.collection("users").document(email).get().get().get("name").toString();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            challenge.put("host", name);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("title", challenge.get("title"));

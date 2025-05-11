@@ -34,6 +34,9 @@ public class logService {
 
         try {
             DocumentSnapshot snapshot = db.collection("challenges").document((String) log.get("challengeId")).get().get();
+            if (snapshot == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
             String description = snapshot.get("checklist").toString();
 
             Map<String, Object> payload = new HashMap<>();
@@ -64,6 +67,15 @@ public class logService {
 
             ApiFuture<DocumentReference> docRefFuture = db.collection("users_log").add(responseBody);
             // 이미지 업로드
+            DocumentReference logDocRef = docRefFuture.get();  // 저장된 로그의 참조
+            String logId = logDocRef.getId();  // 새 로그 ID 획득
+
+            // 사용자 문서에 logId 추가 (arrayUnion 사용)
+            DocumentReference userDocRef = db.collection("users").document(email);
+            Map<String, Object> logUpdate = new HashMap<>();
+            logUpdate.put("logs", com.google.cloud.firestore.FieldValue.arrayUnion(logId));
+            userDocRef.update(logUpdate);  // Firestore update
+
 
             return new ResponseEntity<>(responseBody, headers, HttpStatus.OK);
 
