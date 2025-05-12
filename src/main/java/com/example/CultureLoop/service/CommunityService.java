@@ -3,6 +3,7 @@ package com.example.CultureLoop.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.storage.BlobId;
@@ -31,6 +32,7 @@ public class CommunityService {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName();
 
+            // 사용자 이름 조회
             String name = "";
             try {
                 name = db.collection("users").document(email).get().get().get("name").toString();
@@ -39,6 +41,7 @@ public class CommunityService {
             }
             challenge.put("host", name);
 
+            // AI 서버용 payload 구성
             Map<String, Object> payload = new HashMap<>();
             payload.put("title", challenge.get("title"));
             payload.put("city", challenge.get("city"));
@@ -49,32 +52,50 @@ public class CommunityService {
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(payload, headers);
             RestTemplate restTemplate = new RestTemplate();
-            try {
 
-                ResponseEntity<String> response = restTemplate.postForEntity(AI_URL+"/refine/", requestEntity, String.class);
+            try {
+                // 🔁 1. AI 서버 호출
+                ResponseEntity<String> response = restTemplate.postForEntity(AI_URL + "/refine/", requestEntity, String.class);
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> responseBody = objectMapper.readValue(response.getBody(), new TypeReference<>() {});
 
-                // 이미지 업로드
+                // 🔁 2. 이미지 업로드
                 List<String> imageUrls = uploadImagesToGCS(images);
 
-                // Firestore에 챌린지 저장
-                challenge.put("images", imageUrls);
+                // 🔁 3. reward 저장
+                String reward = (String) challenge.get("reward");
+                String rewardId = null;
+                if (reward != null && !reward.isEmpty()) {
+                    Map<String, Object> rewardData = new HashMap<>();
+                    rewardData.put("email", email);
+                    rewardData.put("reward", reward);
+                    rewardData.put("createdAt", Timestamp.now());
 
+                    // Firestore에 rewards 문서 저장 후 ID 획득
+                    DocumentReference rewardRef = db.collection("rewards").add(rewardData).get();
+                    rewardId = rewardRef.getId();
+                }
+
+                // 🔁 4. 챌린지 객체 구성
+                challenge.put("images", imageUrls);
                 challenge.put("title", responseBody.get("title"));
                 challenge.put("checklist", responseBody.get("checklist"));
                 challenge.put("cultural_background", responseBody.get("cultural_background"));
+                if (rewardId != null) {
+                    challenge.put("rewardId", rewardId);
+                }
 
-                ApiFuture<DocumentReference> docRefFuture = db.collection("challenges").add(challenge);
+                // 🔁 5. 챌린지 Firestore 저장
+                DocumentReference challengeRef = db.collection("challenges").add(challenge).get();
+                String challengeId = challengeRef.getId();
 
-                String challengeId = docRefFuture.get().getId();
                 Map<String, Object> responseData = new HashMap<>();
-
                 responseData.put("challengeId", challengeId);
                 responseData.put("challenge", challenge);
 
                 return new ResponseEntity<>(responseData, headers, HttpStatus.OK);
+
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -84,6 +105,7 @@ public class CommunityService {
                     .body("챌린지 저장 중 오류 발생: " + e.getMessage());
         }
     }
+
 
     private List<String> uploadImagesToGCS(MultipartFile[] images) throws IOException {
         List<String> urls = new ArrayList<>();

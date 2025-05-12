@@ -96,4 +96,16 @@ public class UserController {
     public ResponseEntity<?> getLogs(){
         return userProfileService.ChallengeLog();
     }
+
+    // badges 불러오기
+    @GetMapping("/me/badges")
+    public ResponseEntity<?> getBadges(){
+        return userProfileService.getUserBadges();
+    }
+
+    // rewards 불러오기
+    @GetMapping("/me/rewards")
+    public ResponseEntity<?> getRewards(){
+        return userProfileService.getUserRewards();
+    }
 }

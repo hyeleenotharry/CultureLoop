@@ -53,6 +53,16 @@ public class UserChallengeService {
                 userDocRef.update("completed", FieldValue.arrayUnion(challengeId));
                 userDocRef.update("badges", FieldValue.arrayUnion(imageUrl));
 
+                // rewardId 가져오기
+                String rewardId = challengeSnapshot.contains("rewardId") ?
+                        challengeSnapshot.getString("rewardId") : null;
+
+                if (rewardId != null && !rewardId.isEmpty()) {
+                    // 사용자 rewards 필드가 없을 수도 있으므로 병합 방식 사용
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("rewards", FieldValue.arrayUnion(rewardId));
+                    userDocRef.set(updates, SetOptions.merge());  // 필드가 없어도 자동 생성됨
+                }
             }
 
             return ResponseEntity.ok("챌린지 " + (isComplete ? "완료" : "수락") + " 처리 완료");
@@ -63,6 +73,7 @@ public class UserChallengeService {
                     .body("Firestore 작업 실패: " + e.getMessage());
         }
     }
+
 
     public ResponseEntity<?> getRandomChallenges() {
         int count = 8;
@@ -79,11 +90,15 @@ public class UserChallengeService {
                 return ResponseEntity.ok(Collections.emptyList());
             }
 
-            Collections.shuffle(documents); // 안전하게 작동함
+            Collections.shuffle(documents);
 
             List<Map<String, Object>> randomChallenges = documents.stream()
                     .limit(count)
-                    .map(DocumentSnapshot::getData)
+                    .map(doc -> {
+                        Map<String, Object> dataWithId = new HashMap<>(doc.getData());
+                        dataWithId.put("challengeId", doc.getId());
+                        return dataWithId;
+                    })
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(randomChallenges);
@@ -93,6 +108,7 @@ public class UserChallengeService {
             return ResponseEntity.status(500).body("Firestore 오류: " + e.getMessage());
         }
     }
+
 
     public ResponseEntity<?> getChallengeDetail(String ChallengeId) {
         Firestore db = FirestoreClient.getFirestore();

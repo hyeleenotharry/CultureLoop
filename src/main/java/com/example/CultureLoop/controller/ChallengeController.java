@@ -70,7 +70,9 @@ public class ChallengeController {
             List<Map<String, Object>> challenges = new ArrayList<>();
 
             for (DocumentSnapshot doc : documents) {
-                challenges.add(doc.getData());
+                Map<String, Object> dataWithId = new HashMap<>(doc.getData());
+                dataWithId.put("challengeId", doc.getId());
+                challenges.add(dataWithId);
             }
 
             List<Map<String, Object>> selectedChallenges = new ArrayList<>();
