@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 public class UserChallengeService {
     // 랜덤하게 challenge 주기
 
-    // challenge 수락 및 완료
-    public ResponseEntity<?> addUserChallenge(String challengeId, boolean isComplete, MultipartFile file) {
+    // challenge 수락 및 완료 - 파일 아니고 String 으로 바꾸기
+    public ResponseEntity<?> addUserChallenge(String challengeId, boolean isComplete, String file) {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName();
@@ -40,8 +40,10 @@ public class UserChallengeService {
             String imageUrl = "";
 
             // 파일이 존재하고 완료 상태인 경우에만 GCS에 업로드
-            if (isComplete && file != null && !file.isEmpty()) {
-                imageUrl = uploadImagesToGCS(file, challengeId);
+            if (isComplete && file != null) {
+                // imageUrl = uploadImagesToGCS(file, challengeId);
+                imageUrl = file;
+
             }
 
             if (!isComplete) {
@@ -71,6 +73,24 @@ public class UserChallengeService {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Firestore 작업 실패: " + e.getMessage());
+        }
+    }
+
+    // 챌린지 진행 cancel
+    public ResponseEntity<?> cancelChallenge(String challengeId) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String email = auth.getName();
+
+            Firestore db = FirestoreClient.getFirestore();
+            // 유저 문서 참조
+            DocumentReference userDocRef = db.collection("users").document(email);
+            userDocRef.update("ongoing", FieldValue.arrayRemove(challengeId));
+
+            return ResponseEntity.status(HttpStatus.OK).body(challengeId + "진행 취소");
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

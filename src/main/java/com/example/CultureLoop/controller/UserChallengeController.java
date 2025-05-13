@@ -9,11 +9,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/challenge")
@@ -22,11 +21,12 @@ public class UserChallengeController {
     // challenge 상태를 바꾸는 api
     private final UserChallengeService userChallengeService;
 
-    @PostMapping(value = "/user-challenge", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> addUserChallenge(
-            @RequestPart("challengeId") String challengeId,
-            @RequestPart("isCompleted") boolean isCompleted,
-            @RequestPart(value = "file", required = false) MultipartFile file) {
+    @PostMapping(value = "/user-challenge")
+    public ResponseEntity<?> addUserChallenge(@RequestBody Map<String, Object> body) {
+
+        Boolean isCompleted = body.get("isCompleted").equals("true");
+        String challengeId = body.get("challengeId").toString();
+        String file = body.get("file").toString();
 
         // file은 isCompleted == true 일 때만 전달됨
         if (isCompleted && (file == null || file.isEmpty())) {
@@ -36,6 +36,12 @@ public class UserChallengeController {
         userChallengeService.addUserChallenge(challengeId, isCompleted, file);
 
         return ResponseEntity.ok("처리 완료");
+    }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<?> cancelChallenge(@RequestBody String challengeId) {
+
+        return userChallengeService.cancelChallenge(challengeId);
     }
 
     // 호스트가 있는 챌린지라면 버튼을 누를 시 호스트에게 알람이 가게

@@ -67,7 +67,8 @@ public class logService {
             // 로그 정보에 유저 및 챌린지 정보 추가
             responseBody.put("user", email);
             responseBody.put("date", log.get("date").toString());
-            responseBody.put("challenge", (String) log.get("challengeId"));
+            responseBody.put("challengeId", (String) log.get("challengeId"));
+            responseBody.put("challenge_title", snapshot.get("title").toString()); // challenge title
             responseBody.put("imageUrls", imageUrls);
 
             // Firestore에 로그 저장
