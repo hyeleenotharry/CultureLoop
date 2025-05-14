@@ -54,16 +54,16 @@ public class CommunityService {
             RestTemplate restTemplate = new RestTemplate();
 
             try {
-                // 🔁 1. AI 서버 호출
+                // 1. AI 서버 호출
                 ResponseEntity<String> response = restTemplate.postForEntity(AI_URL + "/refine/", requestEntity, String.class);
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> responseBody = objectMapper.readValue(response.getBody(), new TypeReference<>() {});
 
-                // 🔁 2. 이미지 업로드
+                // 2. 이미지 업로드
                 List<String> imageUrls = uploadImagesToGCS(images);
 
-                // 🔁 3. reward 저장
+                // 3. reward 저장
                 String reward = (String) challenge.get("reward");
                 String rewardId = null;
                 if (reward != null && !reward.isEmpty()) {
@@ -77,7 +77,7 @@ public class CommunityService {
                     rewardId = rewardRef.getId();
                 }
 
-                // 🔁 4. 챌린지 객체 구성
+                // 4. 챌린지 객체 구성
                 challenge.put("images", imageUrls);
                 challenge.put("title", responseBody.get("title"));
                 challenge.put("checklist", responseBody.get("checklist"));
@@ -86,7 +86,7 @@ public class CommunityService {
                     challenge.put("rewardId", rewardId);
                 }
 
-                // 🔁 5. 챌린지 Firestore 저장
+                // 5. 챌린지 Firestore 저장
                 DocumentReference challengeRef = db.collection("challenges").add(challenge).get();
                 String challengeId = challengeRef.getId();
 
