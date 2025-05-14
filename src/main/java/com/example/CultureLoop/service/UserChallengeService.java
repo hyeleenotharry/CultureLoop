@@ -154,7 +154,7 @@ public class UserChallengeService {
                     if (userSnapshot.get("completed") != null) {
                         List<String> completed = (ArrayList<String>) userSnapshot.get("completed");
                         if (completed.contains(ChallengeId)) {
-                            status = "ongoing";
+                            status = "completed";
                         }
                     }
                     data.put("mission_status", status);
