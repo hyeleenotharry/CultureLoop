@@ -157,7 +157,7 @@ public class UserChallengeService {
                             status = "ongoing";
                         }
                     }
-                    data.put("status", status);
+                    data.put("mission_status", status);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
