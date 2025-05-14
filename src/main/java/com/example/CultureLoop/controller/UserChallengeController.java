@@ -23,10 +23,15 @@ public class UserChallengeController {
 
     @PostMapping(value = "/user-challenge")
     public ResponseEntity<?> addUserChallenge(@RequestBody Map<String, Object> body) {
+        String file = "";
 
         Boolean isCompleted = body.get("isCompleted").equals("true");
         String challengeId = body.get("challengeId").toString();
-        String file = body.get("file").toString();
+        try{
+            file = body.get("file").toString();
+        } catch (Exception e) {
+            // nothing
+        }
 
         // file은 isCompleted == true 일 때만 전달됨
         if (isCompleted && (file == null || file.isEmpty())) {
