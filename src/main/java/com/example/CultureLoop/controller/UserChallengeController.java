@@ -44,9 +44,9 @@ public class UserChallengeController {
     }
 
     @PostMapping("/cancel")
-    public ResponseEntity<?> cancelChallenge(@RequestBody String challengeId) {
+    public ResponseEntity<?> cancelChallenge(@RequestBody Map<String, Object> challenge) {
 
-        return userChallengeService.cancelChallenge(challengeId);
+        return userChallengeService.cancelChallenge(challenge.get("challengeId").toString());
     }
 
     // 호스트가 있는 챌린지라면 버튼을 누를 시 호스트에게 알람이 가게

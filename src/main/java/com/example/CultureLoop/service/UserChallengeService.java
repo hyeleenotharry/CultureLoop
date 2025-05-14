@@ -70,9 +70,7 @@ public class UserChallengeService {
             return ResponseEntity.ok("챌린지 " + (isComplete ? "완료" : "수락") + " 처리 완료");
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Firestore 작업 실패: " + e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -81,6 +79,7 @@ public class UserChallengeService {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String email = auth.getName();
+            System.out.println(challengeId);
 
             Firestore db = FirestoreClient.getFirestore();
             // 유저 문서 참조
@@ -90,7 +89,7 @@ public class UserChallengeService {
             return ResponseEntity.status(HttpStatus.OK).body(challengeId + "진행 취소");
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -124,8 +123,7 @@ public class UserChallengeService {
             return ResponseEntity.ok(randomChallenges);
 
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Firestore 오류: " + e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
