@@ -5,6 +5,7 @@ import com.google.cloud.firestore.*;
 import com.google.cloud.storage.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.cloud.StorageClient;
+import com.google.firebase.database.DataSnapshot;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -132,8 +133,37 @@ public class UserChallengeService {
         Firestore db = FirestoreClient.getFirestore();
         try {
             DocumentSnapshot snapshot = db.collection("challenges").document(ChallengeId).get().get();
+            // 기존 데이터 복사
+            Map<String, Object> data = new HashMap<>(snapshot.getData());
+            try {
+                String status = "";
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                String email = auth.getName();
+                //System.out.println(email);
+                DocumentSnapshot userSnapshot = db.collection("users").document(email).get().get();
 
-            return ResponseEntity.ok(snapshot.getData());
+                if(userSnapshot == null) {
+
+                } else if (userSnapshot.get("ongoing") != null || userSnapshot.get("completed") != null) {
+                    if (userSnapshot.get("ongoing") != null) {
+                        List<String> ongoing = (ArrayList<String>) userSnapshot.get("ongoing");
+                        if (ongoing.contains(ChallengeId)) {
+                            status = "ongoing";
+                        }
+                    }
+                    if (userSnapshot.get("completed") != null) {
+                        List<String> completed = (ArrayList<String>) userSnapshot.get("completed");
+                        if (completed.contains(ChallengeId)) {
+                            status = "ongoing";
+                        }
+                    }
+                    data.put("status", status);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            return ResponseEntity.ok(data);
         } catch (Exception e){
             Map<String, Object> errorBody = new HashMap<>();
             errorBody.put("error", "Internal Server Error");
