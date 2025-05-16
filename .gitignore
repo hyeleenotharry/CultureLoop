@@ -3,6 +3,7 @@ HELP.md
 
 src/main/resources/firebase.json
 src/main/resources/application.properties
+src/main/java/com/example/CultureLoop/documentation
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
